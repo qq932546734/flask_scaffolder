@@ -33,12 +33,25 @@ server.handle_request()
 该可执行对象接受两个positional参数
 
 * environ：字典类型，定义了各种变量的值。WSGI服务器在收到请求之后，由它来填充该dictionary的各个变量。
-* start_response：回调函数，应用用来发送HTTP status code和HTTP header给客户端。这表明该回调函数接受两个参数，第一个是HTTP状态码，第二个是HTTP header。由WSGI服务器提供。
+* start_response：回调函数，应用用来发送HTTP status code和HTTP header给客户端。这表明该回调函数接受两个参数，第一个是HTTP状态码和状态信息拼成的string（格式是固定的：`200 Success`），第二个是HTTP header（格式是list of tuple，`[(header_name, header_value)]`）。由WSGI服务器提供。该函数必须返回一个callable，用于将bytestring写入response body中的。
 
 ### WSGI服务器端（server/gateway)
 
 上面我们看了wsgi应用的接口，那么wsgi服务器端是怎么处理的呢？
 
+#### WSGI中间件
 
+中间件的设计，保证了应用可以嵌套。所以，中间件既要能起到WSGI server的作用，能调用上一层的application；中间件也需要有application的功能，被WSGI server调用。中间件的接驳，就像是“》》》》》》》”一样，任意个组合在一起，等同于一个application，能当成一个application被使用。
+
+中间件的作用
+
+1. 修改environ参数，然后将请求重定向到目标URL；
+2. 在同一个进程中跑某个application的多个实例；
+3. 将一个application进行拆分，load balancing；
+4. 对content做一些后处理
+
+### 设计原理
+
+1. 为何application接受一个start_response的函数，而不是直接将HTTP headers & HTTP status作为返回值？
 
 WSGI container, web server, web framework, WSGI server,
